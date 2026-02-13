@@ -1,0 +1,18 @@
+# Python virtual environment
+.venv/
+__pycache__/
+*.py[cod]
+
+# Big data sets (Ignore only images and labels, keep yaml)
+**/datasets/**/images/
+**/datasets/**/labels/
+*.rar
+*.zip
+
+# YOLO outputs and cache files
+*.cache
+runs/
+
+# Big model weights (best.pt, last.pt, etc.)
+# Note: If you are not using GitHub LFS, you should add the weights folder or .pt files
+*.pt
