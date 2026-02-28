@@ -1,0 +1,32 @@
+# AeroMind Kamera Kalibrasyon Ayarları
+
+window_title: "AeroMind - Task 2 Hareket Takibi"
+scale: 0.25 # Tüm kameralar için ortak ölçek faktörü (Örn: 4000 pikselden 1000'e -> 0.25)
+
+active_config: "rgb_2025"  # Buradan hangi kamerayı kullanacağını seçebilirsin
+
+# Dosya Yolları
+paths:
+  video_source: "datasets/videos/2025-ornek-veriler/Ornek-Veri-2-RGB.MP4"
+  output_folder: "runs/odometry_results"
+
+# 2024 Yılı Parametreleri [cite: 1, 2]
+standard_2024:
+  image_size: [1920, 1080]
+  focal_length: [1413.3, 1418.8]
+  principal_point: [950.0639, 543.3796]
+  distortion: [-0.0091, 0.0666, 0.0, 0.0]
+
+# 2025 Yılı RGB Parametreleri [cite: 7]
+rgb_2025:
+  image_size: [4000, 3000]
+  focal_length: [2792.2, 2795.2]
+  principal_point: [1988.0, 1562.2]
+  distortion: [0.0798, -0.1867, 0.0, 0.0]
+
+# 2025 Yılı Termal Parametreleri [cite: 5, 6]
+thermal_2025:
+  image_size: [640, 512]
+  focal_length: [731.7965, 732.0172]
+  principal_point: [319.2367, 251.2424]
+  distortion: [-0.3507, 0.1137, 0.0, 0.0]

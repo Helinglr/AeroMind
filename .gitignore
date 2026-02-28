@@ -6,6 +6,7 @@ __pycache__/
 # Big data sets (Ignore only images and labels, keep yaml)
 **/datasets/**/images/
 **/datasets/**/labels/
+**/datasets/**/videos/
 *.rar
 *.zip
 

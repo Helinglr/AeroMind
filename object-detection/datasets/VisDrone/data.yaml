@@ -1,0 +1,21 @@
+# Path to the dataset (adjust as needed)
+path: datasets/VisDrone
+train: train/images         
+val: val/images           
+test: test/images         
+
+# Class count (VisDrone typically has 10 classes)
+nc: 10
+
+# Class names (order is crucial, do not mix!)
+names:
+  0: pedestrian
+  1: people
+  2: bicycle
+  3: car
+  4: van
+  5: truck
+  6: tricycle
+  7: awning-tricycle
+  8: bus
+  9: motor
