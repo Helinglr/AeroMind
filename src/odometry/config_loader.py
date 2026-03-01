@@ -1,15 +1,20 @@
 import numpy as np
 import yaml
-
+import os
 
 def get_all_configs(config_path):
     """Belirtilen YAML dosyasından tüm konfigürasyonları yükler ve mevcut konfigürasyonları ekrana yazdırır."""
+    
+    if not os.path.exists(config_path):
+        return {}
+    
     with open(config_path, 'r') as file:
         configs = yaml.safe_load(file)
 
         print("Mevcut Konfigürasyonlar:")
         for name in configs.keys():
            print(f"- {name}")
+        print()
 
         return configs
 
@@ -20,7 +25,7 @@ def get_config(all_configs, config_name=None):
     if not all_configs:
         raise ValueError("Konfigürasyon dosyası boş veya geçersiz.")
     
-    if config_name and not config_name in all_configs:
+    if config_name and config_name not in all_configs:
         raise ValueError(f"Belirtilen konfigürasyon '{config_name}' bulunamadı. Mevcut konfigürasyonlar: {list(all_configs.keys())}")
 
     name = config_name if config_name else all_configs['active_config']
@@ -35,9 +40,8 @@ def get_camera_params(cfg):
     
     K = get_k_matrix(fx, fy, cx, cy, scale=scale) # K Matrisini oluştur
 
-    # dist katsayılarını da açıkça float32 yapmalısın
+    # Bozulma katsayılarını da açıkça float32 yapmalısın
     dist = np.array(cfg['distortion'], dtype=np.float32)
-    # dist = np.array(cfg['distortion']) # Bozulma katsayılarını oluştur
     
     return K, dist
 
@@ -50,5 +54,4 @@ def get_k_matrix(fx, fy, cx, cy, scale=1.0):
 
 def get_video_path(all_configs):
     path = all_configs['paths']['video_source']
-    print(f"Video: {path}")
     return path
