@@ -1,3 +1,5 @@
+from csv import writer
+import csv
 import time
 import cv2
 import multiprocessing as mp
@@ -70,11 +72,15 @@ def task_2_worker(all_configs, shared_vector):
         size = all_configs.get('window_size')
         scale = all_configs.get('scale')
         video_path = all_configs.get('paths').get('video_source')
-        return title, size, scale, video_path
-        
+        output_path = all_configs.get('paths').get('output_folder')
+        return title, size, scale, video_path, output_path
+     
     task = OdometryTask(all_configs)
-    window_title, window_size, scale, video_path = get_configs(all_configs)
+    window_title, window_size, scale, video_path, output_path = get_configs(all_configs)
     setup_window(window_title, *window_size)
+
+    os.makedirs(output_path, exist_ok=True)
+    csv_path = os.path.join(output_path, "trajectory_log.csv")
 
     video_path = relative_path(None, video_path)
     cap = cv2.VideoCapture(video_path)
@@ -82,36 +88,55 @@ def task_2_worker(all_configs, shared_vector):
     if not cap.isOpened():
         print(f"Video kaynağı açılamadı: {video_path}")
         return
-    
-    last_time = time.time()
-    while cap.isOpened():
-        frame = fetch_scaled_frame(cap, scale)
         
-        if frame is None:
-            print("Video sonuna gelindi veya kare okunamadı.")
-            break
+    with open(csv_path, mode='w', newline='') as file: 
+        writer = csv.writer(file)
+        writer.writerow(["Frame", "Timestamp", "DX", "DY", "Total_X", "Total_Y"])
+            
+        last_time = time.time()
+        total_x, total_y = 0.0, 0.0
+        frame_count = 0
+            
+        while cap.isOpened():
+            frame = fetch_scaled_frame(cap, scale)
+            
+            if frame is None:
+                print("Video sonuna gelindi veya kare okunamadı.")
+                break
+            
+            frame_count += 1
+            
+            processed_frame = task.process(frame)
+            
+            if processed_frame is None:
+                print("Processed frame is None")
+            
+            last_time = display_fps(processed_frame, last_time)
+            
+            output = task.get_output()
+            
+            if output is None or "movement" not in output:
+                print("Output is None or missing 'movement' key")
+                continue
+            
+            # 2. Ürettiğin vektörü al ve ORTAK HAFIZAYA yaz (Helin için)
+            dx = output["movement"]["dx"]
+            dy = output["movement"]["dy"]
+            shared_vector[0] = dx
+            shared_vector[1] = dy
+            
+            # 3. Kümülatif konumu hesapla (Uçağın haritadaki konumu)
+            total_x += dx
+            total_y += dy
+            
+            writer.writerow([frame_count, last_time, dx, dy, total_x, total_y])
+            cv2.putText(processed_frame, f"X: {total_x:.1f} Y: {total_y:.1f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+
+            cv2.imshow(window_title, processed_frame)
+            
+            if cv2.waitKey(30) & 0xFF == ord('q'):
+                break
         
-        processed_frame = task.process(frame)
-        
-        if processed_frame is None:
-            print("Processed frame is None")
-        
-        last_time = display_fps(processed_frame, last_time)
-        
-        output = task.get_output()
-        
-        if output is None or "movement" not in output:
-            print("Output is None or missing 'movement' key")
-            continue
-        
-        shared_vector[0] = output["movement"]["dx"]
-        shared_vector[1] = output["movement"]["dy"]
-        
-        cv2.imshow(window_title, processed_frame)
-        
-        if cv2.waitKey(30) & 0xFF == ord('q'):
-            break
-     
     close_window(cap)
 
 def task_3_worker(shared_vector):

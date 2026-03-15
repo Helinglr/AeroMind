@@ -1,0 +1,30 @@
+# SİSTEM MİMARİSİ KONSEPTİ
+import multiprocessing as mp
+
+def task_1_and_3_worker(input_queue, output_queue, shared_vars):
+    # YOLO çalıştır, UAP/UAİ hesapla, Referans obje ara
+    # Sonuçları JSON formatında output_queue'ya at
+
+def task_2_worker(input_queue, output_queue, shared_vars):
+    # dx, dy, dz hesapla 
+    # Sonuçları output_queue'ya at
+
+def main_orchestrator():
+    frame_queue_1 = mp.Queue(maxsize=30)
+    frame_queue_2 = mp.Queue(maxsize=30)
+    result_queue = mp.Queue()
+
+    # İkimizin modüllerini paralel process'ler olarak başlat
+    p1 = mp.Process(target=task_1_and_3_worker, args=(frame_queue_1, result_queue))
+    p2 = mp.Process(target=task_2_worker, args=(frame_queue_2, result_queue))
+    p1.start(); p2.start()
+
+    # 1. Reader Modülü (Videoyu okur ve dağıtır)
+    for frame in video_stream:
+        frame_queue_1.put(frame)
+        frame_queue_2.put(frame)
+    
+    # 2. JSON Merger (Birleştirici)
+    # result_queue'dan gelen  Task 1/3 sonuçları ile 
+    #  Task 2 sonuçlarını frame_id'ye göre birleştirip
+    # tek bir result.json dosyasına yazdırır.

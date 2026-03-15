@@ -23,11 +23,22 @@ class OdometryTask(BaseTask):
         self.mask = None
         self.frame_count = 0
         self.last_displacement = {"dx": 0.0, "dy": 0.0} # Vektör Outputu
+        
+        # Optimizasyon için haritalar (remapping)
+        self.mapx = None
+        self.mapy = None
 
     def process(self, frame):
         """Bu fonksiyon orkestra şefi tarafından HER KARE için bir kez çağrılır."""
         
-        frame = cv2.undistort(frame, self.K, self.dist) # Distorsiyon (lensin dairesel bozulması, balık gözü etkisi)'u düzelt
+        # 1. Sadece ilk karede haritayı (Map) oluştur
+        if self.mapx is None:
+            h, w = frame.shape[:2]
+            self.mapx, self.mapy = cv2.initUndistortRectifyMap(self.K, self.dist, None, self.K, (w, h), 5)
+        
+        frame = cv2.remap(frame, self.mapx, self.mapy, cv2.INTER_LINEAR)
+        
+        #frame = cv2.undistort(frame, self.K, self.dist)
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # İlk kare geldiyse başlatma işlemlerini yap
@@ -48,27 +59,19 @@ class OdometryTask(BaseTask):
             good_new = p1[st == 1]
             good_old = self.p0[st == 1]
 
-            # --- YENİ: Helin için Hareket Vektörünü Hesapla ---
             if len(good_new) > 0:
                 diffs = good_new - good_old
                 mean_diff = np.mean(diffs, axis=0) # Tüm noktaların ortalama hareketi
                 self.last_displacement = {"dx": float(mean_diff[0]), "dy": float(mean_diff[1])}
 
             # good_old = good_old if len(good_old) == len(good_new) else good_new
-            # Çizim işlemleri
+           
             img = self.draw_tracks(frame, good_new, good_old)
-
-            # Yeniden Tespit (Redetection)
-            if len(good_new) < 50 or self.frame_count % 30 == 0:
-                new_points = self.detect_trackable_points(frame_gray, self.feature_params)
-                if new_points is not None:
-                    good_new = np.vstack((good_new, new_points.reshape(-1, 2)))
-                    self.clear_mask() # Eski izleri temizle
-
+            good_new = self.redetect(frame, good_new, frame_gray)
             self.old_gray = frame_gray.copy()
             self.p0 = good_new.reshape(-1, 1, 2)
             
-            return img # Orkestra şefine çizilmiş resmi geri ver
+            return img
 
         else:
             print("Takip edilebilir nokta bulunamadı, yeniden başlatılıyor...")
@@ -76,8 +79,22 @@ class OdometryTask(BaseTask):
             self.clear_mask()
             return frame
 
+    def redetect(self, frame, good_new, frame_gray):
+        """Takip edilen noktaların sayısı azaldığında veya belirli aralıklarla yeni noktalar tespit eder."""
+        
+        if len(good_new) > 50 and self.frame_count % 30 != 0:
+            return good_new
+        
+        new_points = self.detect_trackable_points(frame_gray, self.feature_params)
+        if new_points is None:
+            return good_new
+            
+        self.clear_mask() # Eski izleri temizle
+        return np.vstack((good_new, new_points.reshape(-1, 2)))
+            
     def get_output(self):
         """Helin'in modülünün (veya JSON kaydedicinin) çekeceği standart veri."""
+        
         return {"task_id": 2, "movement": self.last_displacement}
 
     def detect_trackable_points(self, gray_img, params):
@@ -100,3 +117,34 @@ class OdometryTask(BaseTask):
         """Çizim maskesini temizler."""
         
         self.mask[:] = 0
+
+import cv2
+import numpy as np
+from src.common.base_task import BaseTask
+from src.odometry.config_loader import get_config, get_camera_params
+
+class OdometryTaskV2(BaseTask):
+    def __init__(self, all_configs):
+        cfg = get_config(all_configs)
+        self.K, self.dist = get_camera_params(cfg)
+        
+        # Gelecekte ORB-SLAM3 Python Wrapper nesnesini burada başlatacağız
+        # self.slam = ORBSLAM3.System(vocab_path, settings_path, ORBSLAM3.Sensor.MONOCULAR)
+        
+        self.last_position = {"x": 0.0, "y": 0.0, "z": 0.0}
+        print("ORB-SLAM3 (V2) Başlatılıyor...")
+
+    def process(self, frame):
+        # 1. Görüntüyü SLAM motoruna gönder
+        # 2. SLAM'den güncel 3B konumu (X, Y, Z) al
+        # 3. Şimdilik sadece orijinal frame'i geri döndür
+        
+        # pose = self.slam.track_monocular(frame, current_timestamp)
+        # if pose is not None:
+        #     self.last_position = extract_translation(pose)
+            
+        return frame
+
+    def get_output(self):
+        """Teknofest şartnamesine uygun X, Y, Z öteleme (translation) çıktısı"""
+        return {"task_id": 2, "translation": self.last_position}

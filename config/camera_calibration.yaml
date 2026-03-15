@@ -2,7 +2,7 @@
 
 window_title: "AeroMind - Task 2 Hareket Takibi"
 window_size: [1280, 720] # Gösterim penceresi boyutu (Örn: 1280x720)
-scale: 1 #0.25 # Tüm kameralar için ortak ölçek faktörü (Örn: 4000 pikselden 1000'e -> 0.25)
+scale: 0.50 # Tüm kameralar için ortak ölçek faktörü (Örn: 4000 pikselden 1000'e -> 0.25)
 
 active_config: "rgb_2025"  # Buradan hangi kamerayı kullanacağını seçebilirsin
 
